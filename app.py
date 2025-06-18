@@ -15,6 +15,8 @@ if 'evaluator' not in st.session_state:
     st.session_state.evaluator = ""
 if 'qid_index' not in st.session_state:
     st.session_state.qid_index = 0
+if 'submitted' not in st.session_state:
+    st.session_state.submitted = False
 
 # Evaluator input
 if not st.session_state.evaluator:
@@ -44,15 +46,15 @@ st.markdown(f"**Gold Answer:** _{ga}_")
 q_responses = responses[responses['Qid'] == qid].copy()
 q_responses = q_responses.sample(frac=1).reset_index(drop=True)
 
-# Response blocks
+# Display and rate responses
 ratings = []
 st.markdown("---")
 for idx, row in q_responses.iterrows():
     with st.container():
-        st.markdown(f"**Response {idx+1}:** {row['Response']}")
-        acc = st.slider(f"Accuracy (Response {idx+1})", 1, 5, key=f"acc_{idx}")
-        rel = st.slider(f"Relevance (Response {idx+1})", 1, 5, key=f"rel_{idx}")
-        qual = st.slider(f"Quality (Response {idx+1})", 1, 5, key=f"qual_{idx}")
+        st.markdown(f"**Response {idx + 1}:** {row['Response']}")
+        acc = st.slider(f"Accuracy (Response {idx + 1})", 1, 5, key=f"acc_{qid}_{idx}")
+        rel = st.slider(f"Relevance (Response {idx + 1})", 1, 5, key=f"rel_{qid}_{idx}")
+        qual = st.slider(f"Quality (Response {idx + 1})", 1, 5, key=f"qual_{qid}_{idx}")
         ratings.append({
             "evaluator": st.session_state.evaluator,
             "qid": qid,
@@ -67,11 +69,23 @@ for idx, row in q_responses.iterrows():
         })
     st.markdown("---")
 
-# Submit button
-if st.button("Submit Evaluations"):
-    result_df = pd.DataFrame(ratings)
-    os.makedirs("results", exist_ok=True)
-    output_file = "results/responses.csv"
-    result_df.to_csv(output_file, mode="a", index=False, header=not os.path.exists(output_file))
-    st.session_state.qid_index += 1
-    st.rerun()
+# Submission logic
+if not st.session_state.submitted:
+    if st.button("Submit Evaluations"):
+        result_df = pd.DataFrame(ratings)
+        os.makedirs("results", exist_ok=True)
+        output_file = "results/responses.csv"
+        result_df.to_csv(output_file, mode="a", index=False, header=not os.path.exists(output_file))
+        st.session_state.submitted = True
+        st.success("✅ Your ratings have been submitted.")
+        st.stop()
+else:
+    st.success("✅ Your ratings have been submitted.")
+    if st.button("Next Question"):
+        st.session_state.qid_index += 1
+        st.session_state.submitted = False
+        # Clear old slider values
+        keys_to_clear = [key for key in st.session_state if key.startswith(("acc_", "rel_", "qual_"))]
+        for key in keys_to_clear:
+            del st.session_state[key]
+        st.rerun()
