@@ -42,25 +42,31 @@ ga = qrow['GA']
 st.subheader(f"Q{qid}: {question}")
 st.markdown(f"**Gold Answer:** _{ga}_")
 
-# Get and shuffle responses
+# Get responses and shuffle ONCE per question
 q_responses = responses[responses['Qid'] == qid].copy()
-q_responses = q_responses.sample(frac=1).reset_index(drop=True)
+shuffle_key = f"shuffled_{qid}"
+if shuffle_key not in st.session_state:
+    st.session_state[shuffle_key] = q_responses.sample(frac=1).reset_index(drop=True)
+q_responses = st.session_state[shuffle_key]
 
 # Display and rate responses
 ratings = []
 st.markdown("---")
 for idx, row in q_responses.iterrows():
+    rid = row['Rid']  # Unique ID for response, used in widget keys
+
     with st.container():
         st.markdown(f"**Response {idx + 1}:** {row['Response']}")
-        acc = st.slider(f"Accuracy (Response {idx + 1})", 1, 5, key=f"acc_{qid}_{idx}")
-        rel = st.slider(f"Relevance (Response {idx + 1})", 1, 5, key=f"rel_{qid}_{idx}")
-        qual = st.slider(f"Quality (Response {idx + 1})", 1, 5, key=f"qual_{qid}_{idx}")
+        acc = st.slider("Accuracy", 1, 5, key=f"acc_{qid}_{rid}")
+        rel = st.slider("Relevance", 1, 5, key=f"rel_{qid}_{rid}")
+        qual = st.slider("Quality", 1, 5, key=f"qual_{qid}_{rid}")
+
         ratings.append({
             "evaluator": st.session_state.evaluator,
             "qid": qid,
             "question": question,
             "ga": ga,
-            "rid": row['Rid'],
+            "rid": rid,
             "response": row['Response'],
             "accuracy": acc,
             "relevance": rel,
@@ -84,8 +90,13 @@ else:
     if st.button("Next Question"):
         st.session_state.qid_index += 1
         st.session_state.submitted = False
-        # Clear old slider values
+
+        # Clear slider state for next question
         keys_to_clear = [key for key in st.session_state if key.startswith(("acc_", "rel_", "qual_"))]
         for key in keys_to_clear:
             del st.session_state[key]
+
+        # Clear shuffle cache for previous question
+        st.session_state.pop(shuffle_key, None)
+
         st.rerun()
