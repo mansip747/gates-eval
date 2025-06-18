@@ -22,7 +22,7 @@ if not st.session_state.evaluator:
     evaluator_name = st.text_input("Enter your name:")
     if st.button("Start Evaluation") and evaluator_name:
         st.session_state.evaluator = evaluator_name
-        st.experimental_rerun()
+        st.rerun()
     st.stop()
 
 # End condition
@@ -74,4 +74,4 @@ if st.button("Submit Evaluations"):
     output_file = "results/responses.csv"
     result_df.to_csv(output_file, mode="a", index=False, header=not os.path.exists(output_file))
     st.session_state.qid_index += 1
-    st.experimental_rerun()
+    st.rerun()
