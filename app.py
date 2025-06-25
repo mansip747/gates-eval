@@ -10,6 +10,13 @@ AIRTABLE_TABLE_NAME = st.secrets["airtable"]["table_name"]
 
 table = Table(AIRTABLE_API_KEY, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME)
 
+def get_last_completed_qid(evaluator_name):
+    records = table.all(formula=f"{{evaluator}} = '{evaluator_name}'")
+    if not records:
+        return 0  # no previous evaluations
+    completed_qids = {int(rec['fields'].get('qid', 0)) for rec in records}
+    return max(completed_qids, default=0)
+
 def upload_to_airtable(data):
     for entry in data:
         clean_entry = {}
@@ -53,6 +60,8 @@ if not st.session_state.evaluator:
     evaluator_name = st.text_input("Enter your name:")
     if st.button("Start Evaluation") and evaluator_name:
         st.session_state.evaluator = evaluator_name
+        last_qid = get_last_completed_qid(evaluator_name)
+        st.session_state.qid_index = last_qid  # resume from next qid
         st.rerun()
     st.stop()
 
