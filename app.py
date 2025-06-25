@@ -81,8 +81,14 @@ st.subheader(f"Q{qid}: {question}")
 st.markdown(f"**Gold Answer:** _{ga}_")
 
 # Get responses
-q_responses = responses[responses['Qid'] == qid].copy()
-q_responses = q_responses.sample(frac=1).reset_index(drop=True)
+#q_responses = responses[responses['Qid'] == qid].copy()
+#q_responses = q_responses.sample(frac=1).reset_index(drop=True)
+if f"shuffled_responses_{qid}" not in st.session_state:
+    q_responses = responses[responses['Qid'] == qid].copy()
+    q_responses = q_responses.sample(frac=1).reset_index(drop=True)
+    st.session_state[f"shuffled_responses_{qid}"] = q_responses
+else:
+    q_responses = st.session_state[f"shuffled_responses_{qid}"]
 
 # Display in 2x2 grid
 ratings = []
